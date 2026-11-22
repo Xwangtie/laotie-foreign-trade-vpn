@@ -1,0 +1,2 @@
+# 占位（保留空目录）
+# TODO: S1: DNS 分流配置（国内域名→国内DNS，其余→stubby DoT）

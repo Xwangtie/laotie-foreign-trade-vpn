@@ -1,0 +1,12 @@
+[Unit]
+Description=openvpn-wm CN DNS ECS proxy (dnsmasq :5354)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/dnsmasq --keep-in-foreground --conf-file=/etc/dnsmasq-wm-cn-ecs.conf --pid-file=/run/dnsmasq-wm-cn.pid
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

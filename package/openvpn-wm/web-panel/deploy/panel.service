@@ -1,0 +1,16 @@
+[Unit]
+Description=老铁外贸网络管理系统 Web 面板
+After=network.target
+
+[Service]
+Type=simple
+User=openvpnwm
+Group=openvpnwm
+WorkingDirectory=/opt/openvpn-wm/web-panel/backend
+EnvironmentFile=/opt/openvpn-wm/web-panel/.env
+ExecStart=/opt/openvpn-wm/web-panel/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

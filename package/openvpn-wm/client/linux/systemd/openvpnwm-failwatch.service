@@ -1,0 +1,13 @@
+[Unit]
+Description=老铁外贸网络管理系统 VPN fail-watch
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/etc/openvpn-wm/bin/fail-watch.sh foreground
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

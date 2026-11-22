@@ -1,0 +1,2 @@
+# 占位（保留空目录）
+# TODO: S1: server.conf + ccd 生成 + connect/disconnect 钩子。参考 legacy/方案B旧代码/server/openvpn/

@@ -1,0 +1,60 @@
+老铁外贸网络管理系统 - Web 管理端部署与运行说明
+===============================================
+
+一、本地开发
+------------
+1) 数据库与环境变量
+   复制 ../web-panel/.env.example 为 ../web-panel/.env（相对 backend 为上一级）。
+   开发必须设置：
+     OPENVPN_WM_DB_PATH=/tmp/panel-dev.db
+     MOCK_EASY_RSA=true
+     BOOTSTRAP_ADMIN_PASSWORD=<你的初始超管密码>
+     ENABLE_SCHEDULER=true
+2) 后端
+   cd backend
+   uv venv --python 3.12 .venv
+   uv pip install -r requirements.txt
+   OPENVPN_WM_DB_PATH=/tmp/panel-dev.db MOCK_EASY_RSA=true .venv/bin/uvicorn app.main:app --reload --port 8000
+   首次启动自动创建默认节点 vpn.example.com；若没设 BOOTSTRAP_ADMIN_PASSWORD，
+   执行: .venv/bin/python -m app.cli create-admin
+3) 前端
+   cd frontend
+   npm install
+   npm run dev          # http://127.0.0.1:5173 ，/api 自动代理到 8000
+4) 测试
+   cd backend && .venv/bin/python -m pytest -q tests/
+
+二、生产部署（面板与 OpenVPN 同机，Ubuntu 22.04）
+--------------------------------------------------
+1) 前置：S1 已完成部署；创建运行用户：
+   useradd -r -s /usr/sbin/nologin openvpnwm
+   install -d -o openvpnwm -g openvpnwm /opt/openvpn-wm /var/lib/openvpn-wm
+   将本 web-panel 目录上传到 /opt/openvpn-wm/web-panel
+2) 后端环境：复制 .env.example 为 /opt/openvpn-wm/web-panel/.env，并配置：
+   OPENVPN_WM_DB_PATH=/var/lib/openvpn-wm/panel.db
+   MOCK_EASY_RSA=false
+   S1_USE_SUDO=true
+   GEN_CCD_SCRIPT=/etc/openvpn/scripts/gen-ccd.sh
+   GEN_CLIENT_SCRIPT=/etc/openvpn/scripts/gen-client.sh
+   REVOKE_CLIENT_SCRIPT=/etc/openvpn/scripts/revoke-client.sh
+   LIST_CLIENTS_SCRIPT=/etc/openvpn/scripts/list-clients.sh
+   VPN_KILL_SCRIPT=/etc/openvpn/scripts/vpn-kill.sh
+   OPENVPN_STATUS_LOG=/var/log/openvpn/status.log
+   OPENVPN_WM_CCD_DIR=/etc/openvpn/ccd
+   JWT_SECRET=<强随机字符串>
+   BOOTSTRAP_ADMIN_PASSWORD=<首次启动后请移除该变量>
+3) 后端依赖：在 /opt/openvpn-wm/web-panel/backend 用 uv 安装 requirements.txt，
+   服务文件见 deploy/panel.service，软链到 /etc/systemd/system 并 enable --now。
+   同时写入 sudoers 白名单（只允许执行上述 5 个脚本，不给任意 shell）：
+     openvpnwm ALL=(root) NOPASSWD: /etc/openvpn/scripts/gen-ccd.sh, /etc/openvpn/scripts/gen-client.sh, /etc/openvpn/scripts/revoke-client.sh, /etc/openvpn/scripts/list-clients.sh, /etc/openvpn/scripts/vpn-kill.sh
+4) 前端构建：cd frontend && npm ci && npm run build
+5) nginx：把 deploy/nginx-vpn.example.com.conf 放入 /etc/nginx/sites-available，
+   certbot certonly -d vpn.example.com 签发证书后 nginx -t && reload。
+   按注释打开 IP 白名单，面板不直接对全网开放。
+
+三、安全注意
+------------
+- .env 严禁进 git；SMTP 密码与 JWT_SECRET 只存在于生产 .env。
+- 所有管理员首次登录必须绑定 TOTP，绑定前业务 API 一律拒绝。
+- .ovpn 不落盘，下载令牌 5 分钟有效且用后即焚。
+- 到期/停用/吊销后由后台任务或接口立即调用 vpn-kill.sh 踢线。

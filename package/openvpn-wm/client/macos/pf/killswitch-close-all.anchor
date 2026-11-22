@@ -1,0 +1,9 @@
+# close-all: VPN 断 → 全部断网（仅放行本地/VPN服务器/隧道）
+table <openvpn_wm_vpn> { __VPN_IPS__ }
+block out all
+pass out on lo0
+pass out inet proto { udp, tcp } from any to <openvpn_wm_vpn> port __VPN_PORT__ keep state
+pass out inet proto udp from any to any port 67,68 keep state
+pass out inet from any to { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } keep state
+pass out inet proto icmp from any to any keep state
+__UTUN_PASS__
